@@ -1,3 +1,12 @@
+## Fork Differences
+
+add hook LocalLow
+add hook ProgramData
+add registry write hook (patch only)
+add registry read hook (with words Mozilla, Firefox if DisableScan=1)
+fix load original library like shell32.dll and ADVAPI32.dll
+update minhook
+
 ## How to build libportable source code?
 
 - C compiler  
