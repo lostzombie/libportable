@@ -34,7 +34,7 @@ endif
 
 CFLAGS   += $(DFLAGS) -Wall -Wno-unused -Wno-format -Wno-int-to-pointer-cast \
             -Wno-unknown-pragmas -finline-functions -DINITGUID \
-            -DWINVER=0x0501 -D_WIN32_IE=0x0601 -mavx
+            -DWINVER=0x0501 -D_WIN32_IE=0x0601
 
 ifeq ($(findstring clang,$(CC)),clang)
 CXX      = $(CC)++
@@ -79,7 +79,7 @@ OBJECTS  = $(DEP)/portable.o $(DEP)/general.o $(DEP)/ice_error.o  $(DEP)/safe_ex
            $(DEP)/lz4.o $(DEP)/cjson.o $(DEP)/json_paser.o $(DEP)/ini_parser.o
 MIN_INC  = $(SRC)/minhook/include
 CFLAGS   += -fvisibility=hidden -DCJSON_HIDE_SYMBOLS -I$(MIN_INC) -I$(SRC)
-DISTDIR  = Release
+DISTDIR  = Release$(BITS)
 OUT1     = $(DISTDIR)/libminhook$(BITS).a
 ifeq ($(MSVC),1)	
 OBJECTS  += $(DEP)/on_tabs.o

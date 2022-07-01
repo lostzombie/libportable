@@ -60,7 +60,7 @@ DEP      = ..\..\.dep
 
 OBJECTS  = $(DEP)\buffer.obj $(DEP)\hde$(BITS).obj $(DEP)\hook.obj $(DEP)\trampoline.obj
 CFLAGS   = $(CFLAGS) /I$(MIN_INC)
-DISTDIR  = ..\..\Release
+DISTDIR  = ..\..\Release$(BITS)
 OUT      = minhook$(BITS).lib
 EXEC     = \
 	@echo coming to minhook subdir...  &&\

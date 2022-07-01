@@ -103,7 +103,7 @@ OBJDLL   = $(OBJDLL)  $(DEP)\resource.res
 OBJS     = $(OBJDLL)
 !endif
 
-DISTDIR	 = Release
+DISTDIR	 = Release$(BITS)
 OUT1	 = $(DISTDIR)\minhook$(BITS).lib
 
 all                     : dirs $(OUT1) $(OUT)
@@ -132,7 +132,7 @@ $(DEP)\bosskey.obj      : $(SRC)\bosskey.c $(SRC)\bosskey.h
 $(DEP)\new_process.obj  : $(SRC)\new_process.c $(SRC)\new_process.h
 	$(CC) $(CFLAGS) /c $(SRC)\new_process.c /Fo$@
 $(DEP)\cpu_info.obj     : $(SRC)\cpu_info.c $(SRC)\cpu_info.h
-	$(CC) $(CFLAGS) /arch:AVX /c $(SRC)\cpu_info.c /Fo$@
+	$(CC) $(CFLAGS) /c $(SRC)\cpu_info.c /Fo$@
 $(DEP)\balance.obj      : $(SRC)\balance.c $(SRC)\balance.h
 	$(CC) $(CFLAGS) /c $(SRC)\balance.c /Fo$@
 $(DEP)\win_registry.obj : $(SRC)\win_registry.c $(SRC)\win_registry.h

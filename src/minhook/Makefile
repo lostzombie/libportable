@@ -50,7 +50,7 @@ X86FLAG  = -m32 -march=i686
 X64FLAG  = -m64
 MIN_INC  = include
 OBJECTS  = $(DEP)/buffer.o $(DEP)/hde$(BITS).o $(DEP)/hook.o $(DEP)/trampoline.o
-DISTDIR  = ../../Release
+DISTDIR  = ../../Release$(BITS)
 CFLAGS   += -I$(MIN_INC) -I$(SRC)
 
 EXEC     = \
