@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Hacker Disassembler Engine 32
  * Copyright (c) 2006-2009, Vyacheslav Patkov.
  * All rights reserved.
@@ -10,11 +10,16 @@
 #ifndef _HDE32_H_
 #define _HDE32_H_
 
-#if defined(_MSC_VER) && (_MSC_VER < 1600)
-#error Unsupported compiler
-#else
-#include <stdint.h>
-#endif
+/* stdint.h - C99 standard header
+ * http://en.wikipedia.org/wiki/stdint.h
+ *
+ * if your compiler doesn't contain "stdint.h" header (for
+ * example, Microsoft Visual C++), you can download file:
+ *   http://www.azillionmonkeys.com/qed/pstdint.h
+ * and change next line to:
+ *   #include "pstdint.h"
+ */
+#include "pstdint.h"
 
 #define F_MODRM         0x00000001
 #define F_SIB           0x00000002

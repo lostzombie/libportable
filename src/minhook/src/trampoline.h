@@ -1,6 +1,6 @@
-/*
+﻿/*
  *  MinHook - The Minimalistic API Hooking Library for x64/x86
- *  Copyright (C) 2009-2014 Tsuda Kageyu.
+ *  Copyright (C) 2009-2017 Tsuda Kageyu.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,9 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _TRAMP_ONLINE_H_
-#  define _TRAMP_ONLINE_H_
+#pragma once
 
 #pragma pack(push, 1)
-
-#ifndef ARRAYSIZE
-#  define ARRAYSIZE(a) (sizeof(a)/sizeof((a)[0]))
-#endif
 
 // Structs for writing x86/x64 instructions.
 
@@ -107,12 +102,4 @@ typedef struct _TRAMPOLINE
     UINT8  newIPs[8];       // [Out] Instruction boundaries of the trampoline function.
 } TRAMPOLINE, *PTRAMPOLINE;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 BOOL CreateTrampolineFunction(PTRAMPOLINE ct);
-#ifdef __cplusplus
-}
-#endif
-
-#endif

@@ -1,6 +1,6 @@
-/*
+﻿/*
  *  MinHook - The Minimalistic API Hooking Library for x64/x86
- *  Copyright (C) 2009-2014 Tsuda Kageyu.
+ *  Copyright (C) 2009-2017 Tsuda Kageyu.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,17 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _MEM_BUFFER_H_
-#  define _MEM_BUFFER_H_
+#pragma once
 
 // Size of each memory slot.
-#ifdef _M_X64
+#if defined(_M_X64) || defined(__x86_64__)
     #define MEMORY_SLOT_SIZE 64
 #else
     #define MEMORY_SLOT_SIZE 32
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 VOID   InitializeBuffer(VOID);
 VOID   UninitializeBuffer(VOID);
 LPVOID AllocateBuffer(LPVOID pOrigin);
 VOID   FreeBuffer(LPVOID pBuffer);
 BOOL   IsExecutableAddress(LPVOID pAddress);
-#ifdef __cplusplus
-}
-#endif
-
-#endif

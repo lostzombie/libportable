@@ -25,7 +25,18 @@ HookRegOpenKeyExW(HKEY    hKey,
     #endif
         return ERROR_REGISTRY_IO_FAILED;
     }
-    return sRegOpenKeyExWStub(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+    else if (lpSubKey &&
+        (StrStrIW(lpSubKey, L"Mozilla") ||
+            StrStrIW(lpSubKey, L"Firefox") ||
+            StrStrIW(lpSubKey, L"firefox")))
+    {
+        //return ERROR_SUCCESS;
+        return ERROR_REGISTRY_IO_FAILED;
+    }
+    else
+    {
+        return sRegOpenKeyExWStub(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+    }
 }
 
 unsigned WINAPI init_winreg(void * pParam)

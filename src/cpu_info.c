@@ -88,6 +88,7 @@ memset_less32(void *dst, int a, size_t n)
 }
 
 /* using non-temporal avx */
+/*
 void* __cdecl 
 memset_avx(void* dst, int c, size_t size)
 {
@@ -98,10 +99,10 @@ memset_avx(void* dst, int c, size_t size)
     {
         return memset(dst, c, size);
     }
-     /* memory address not 32-byte aligned */
+
     if ( non_aligned )
     {
-        /* fill head */
+
         uintptr_t head = 32 - non_aligned;
         memset_less32(buffer, c, head);
         buffer += head;
@@ -123,12 +124,12 @@ memset_avx(void* dst, int c, size_t size)
     }
     if ( size > 0 )
     {
-        /* fill tail */
+
         memset_less32(buffer, c, size);
     }
     return dst;
 }
-
+*/
 uint32_t __stdcall 
 get_level_size(void)
 {

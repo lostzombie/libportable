@@ -102,6 +102,8 @@ extern bool     WINAPI write_file(LPCWSTR appdata_path);
 extern bool     WINAPI print_process_module(DWORD pid);
 extern bool     WINAPI get_appdt_path(WCHAR *ini, int len);
 extern bool     WINAPI get_localdt_path(WCHAR *ini, int len);
+extern bool     WINAPI get_commondt_path(WCHAR *ini, int len);
+extern bool     WINAPI get_lowdt_path(WCHAR* ini, int len);
 extern DWORD    WINAPI get_os_version(void);
 
 /* file_paser.h */

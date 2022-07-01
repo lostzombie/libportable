@@ -9,6 +9,7 @@
 #include "general.h"
 #include "ini_parser.h"
 
+
 #ifdef _MSC_VER
 #include <stdarg.h>
 #endif
@@ -931,12 +932,12 @@ write_ini_file(ini_cache *ini)
     if (is_ff_official() == MOZ_DEV)
     {
         res = inicache_new_section(\
-        "[Profile0]\r\nName=dev-edition-default\r\nIsRelative=1\r\nPath=../../../\r\n\r\n", ini);
+        "[Profile0]\r\nName=dev-edition-default\r\nIsRelative=1\r\nPath=../../\r\n\r\n", ini);
     }
     else
     {
         res = inicache_new_section(\
-        "[Profile0]\r\nName=default\r\nIsRelative=1\r\nPath=../../../\r\nDefault=1\r\n\r\n", ini);      
+        "[Profile0]\r\nName=default\r\nIsRelative=1\r\nPath=../../\r\nDefault=1\r\n\r\n", ini);      
     }
     return res;
 }
@@ -1008,14 +1009,14 @@ write_file(LPCWSTR appdata_path)
             char *dev_name = NULL;
             if (inicache_search_string("Name=dev-edition-default", &dev_name, &handle))
             {
-                ret = inicache_write_string(dev_name, "Path", "../../../", &handle);
+                ret = inicache_write_string(dev_name, "Path", "../../", &handle);
                 ret = inicache_write_string(dev_name, "IsRelative", "1", &handle);    
                 free(dev_name); 
             }
         }
         else if (inicache_search_string("Name=default", &m_name, &handle))
         {
-            ret = inicache_write_string(m_name, "Path", "../../../", &handle);
+            ret = inicache_write_string(m_name, "Path", "../../", &handle);
             ret = inicache_write_string(m_name, "IsRelative", "1", &handle);
             free(m_name); 
         }
@@ -1069,7 +1070,7 @@ get_appdt_path(WCHAR *path, int len)
     {       
         return false;
     }
-    return !!wcsncat(path, L"\\AppData", len);
+    return !!wcsncat(path, L"", len);
 }
 
 bool WINAPI
@@ -1098,7 +1099,65 @@ get_localdt_path(WCHAR *path, int len)
     {
         return false;
     }
-    return !!wcsncat(path, L"\\LocalAppData\\Temp\\Fx", len);
+    return !!wcsncat(path, L"", len);
+}
+
+bool WINAPI
+get_commondt_path(WCHAR* path, int len)
+{
+    char* buf = NULL;
+    if (!ini_path_init())
+    {
+        return false;
+    }
+    if (ini_read_int("General", "Portable", ini_portable_path) <= 0)
+    {
+        return (ExpandEnvironmentStringsW(L"%ALLUSERSPROFILE%", path, len) > 0);
+    }
+    if (ini_read_string("Env", "TmpDataPath", &buf, ini_portable_path));
+    else if (!ini_read_string("General", "PortableDataPath", &buf, ini_portable_path))
+    {
+        wnsprintfW(path, len, L"%ls", L"../Profiles");
+    }
+    if (buf)
+    {
+        MultiByteToWideChar(CP_UTF8, 0, buf, -1, path, len);
+        free(buf);
+    }
+    if (!path_to_absolute(path, len))
+    {
+        return false;
+    }
+    return !!wcsncat(path, L"", len);
+}
+
+bool WINAPI
+get_lowdt_path(WCHAR* path, int len)
+{
+    char* buf = NULL;
+    if (!ini_path_init())
+    {
+        return false;
+    }
+    if (ini_read_int("General", "Portable", ini_portable_path) <= 0)
+    {
+        return (ExpandEnvironmentStringsW(L"%USERPROFILE%\AppData\LocalLow", path, len) > 0);
+    }
+    if (ini_read_string("Env", "TmpDataPath", &buf, ini_portable_path));
+    else if (!ini_read_string("General", "PortableDataPath", &buf, ini_portable_path))
+    {
+        wnsprintfW(path, len, L"%ls", L"../Profiles");
+    }
+    if (buf)
+    {
+        MultiByteToWideChar(CP_UTF8, 0, buf, -1, path, len);
+        free(buf);
+    }
+    if (!path_to_absolute(path, len))
+    {
+        return false;
+    }
+    return !!wcsncat(path, L"\\", len);
 }
 
 DWORD WINAPI

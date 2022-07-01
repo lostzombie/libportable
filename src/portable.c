@@ -60,6 +60,21 @@ typedef HRESULT (WINAPI *SHGetKnownFolderPathPtr)(REFKNOWNFOLDERID rfid,
         DWORD            dwFlags,
         HANDLE           hToken,
         PWSTR            *ppszPath);
+typedef	HRESULT(WINAPI *RegCreateKeyExPtr)(HKEY hKey,
+    LPCSTR lpSubKey,
+    DWORD Reserved,
+    LPSTR lpClass,
+    DWORD dwOptions,
+    REGSAM samDesired,
+    const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    PHKEY phkResult,
+    LPDWORD lpdwDisposition);
+typedef	HRESULT(WINAPI* RegSetKeyValuePtr)(HKEY hKey,
+    LPCWSTR lpSubKey,
+    LPCWSTR lpValueName,
+    DWORD   dwType,
+    LPCVOID lpData,
+    DWORD   cbData);
 
 HMODULE dll_module = NULL;
 static  uintptr_t m_target[EXCLUDE_NUM];
@@ -68,6 +83,8 @@ static  SHGetSpecialFolderLocationPtr sSHGetSpecialFolderLocationStub;
 static  SHGetSpecialFolderPathWPtr    sSHGetSpecialFolderPathWStub;
 static  SHGetKnownFolderIDListPtr     sSHGetKnownFolderIDListStub;
 static  SHGetKnownFolderPathPtr       sSHGetKnownFolderPathStub;
+static  RegCreateKeyExPtr             sRegCreateKeyExWStub;
+static  RegSetKeyValuePtr             sRegSetKeyValueWStub;
 
 typedef void (*pointer_to_handler)();
 typedef struct _dyn_link_desc
@@ -78,12 +95,13 @@ typedef struct _dyn_link_desc
 }dyn_link_desc;
 
 /* AVX memset with non-temporal instructions */
+/*
 TETE_EXT_CLASS void * __cdecl 
 memset_nontemporal_tt (void *dest, int c, size_t count)
 {
     return memset_avx(dest, c, count);
 }
-
+*/
 /* Get the second level cache size */
 TETE_EXT_CLASS uint32_t
 GetNonTemporalDataSizeMin_tt(void)
@@ -145,6 +163,19 @@ HookSHGetSpecialFolderLocation(HWND hwndOwner, int nFolder, LPITEMIDLIST *ppidl)
                 if ( appdata_path[0] != L'\0' )
                 {
                     result = SHILCreateFromPath(appdata_path, &pidlnew, NULL);
+                }
+                break;
+            }
+            case CSIDL_COMMON_APPDATA:
+            {
+                WCHAR commondt_path[MAX_PATH + 1] = { 0 };
+                if (!get_commondt_path(commondt_path, MAX_PATH))
+                {
+                    break;
+                }
+                if (commondt_path[0] != L'\0' && wcreate_dir(commondt_path))
+                {
+                    result = SHILCreateFromPath(commondt_path, &pidlnew, NULL);
                 }
                 break;
             }
@@ -211,6 +242,21 @@ HookSHGetFolderPathW(HWND hwndOwner,int nFolder,HANDLE hToken,
             }
             break;
         }
+        case CSIDL_COMMON_APPDATA:
+        {
+            WCHAR commondt_path[MAX_PATH + 1] = { 0 };
+            if (!get_commondt_path(commondt_path, MAX_PATH))
+            {
+                break;
+            }
+            if (commondt_path[0] != L'\0' && wcreate_dir(commondt_path))
+            {
+                int	 num = wnsprintfW(pszPath, MAX_PATH, L"%ls", commondt_path);
+                if (num > 0 && num < MAX_PATH)
+                    ret = S_OK;
+            }
+            break;
+        }
         case CSIDL_LOCAL_APPDATA:
         {
             WCHAR localdt_path[MAX_PATH+1] = {0};
@@ -262,6 +308,10 @@ HookSHGetKnownFolderIDList(REFKNOWNFOLDERID rfid,DWORD dwFlags,HANDLE hToken,PID
     {
         return HookSHGetSpecialFolderLocation(NULL, CSIDL_APPDATA, ppidl);
     }
+    else if (IsEqualGUID(rfid, &FOLDERID_ProgramData))
+    {
+        return HookSHGetSpecialFolderLocation(NULL, CSIDL_COMMON_APPDATA, ppidl);
+    }
     else if ( IsEqualGUID(rfid, &FOLDERID_LocalAppData) )
     {
         return HookSHGetSpecialFolderLocation(NULL, CSIDL_LOCAL_APPDATA, ppidl);
@@ -292,6 +342,38 @@ HookSHGetKnownFolderPath(REFKNOWNFOLDERID rfid,DWORD dwFlags,HANDLE hToken,PWSTR
         PathRemoveBackslashW(*ppszPath);
         return S_OK;
     }
+    else if (IsEqualGUID(rfid, &FOLDERID_ProgramData))
+    {
+        WCHAR commondt_path[MAX_PATH + 1] = { 0 };
+        if (!get_commondt_path(commondt_path, MAX_PATH))
+        {
+            return S_FALSE;
+        }
+        *ppszPath = CoTaskMemAlloc(sizeof(commondt_path));
+        if (!*ppszPath)
+        {
+            return E_OUTOFMEMORY;
+        }
+        wcscpy(*ppszPath, commondt_path);
+        PathRemoveBackslashW(*ppszPath);
+        return S_OK;
+    }
+    else if (IsEqualGUID(rfid, &FOLDERID_LocalAppDataLow))
+    {
+        WCHAR lowdt_path[MAX_PATH + 1] = { 0 };
+        if (!get_lowdt_path(lowdt_path, MAX_PATH))
+        {
+            return S_FALSE;
+        }
+        *ppszPath = CoTaskMemAlloc(sizeof(lowdt_path));
+        if (!*ppszPath)
+        {
+            return E_OUTOFMEMORY;
+        }
+        wcscpy(*ppszPath, lowdt_path);
+        PathRemoveBackslashW(*ppszPath);
+        return S_OK;
+    }
     else if ( IsEqualGUID(rfid, &FOLDERID_LocalAppData) )
     {
         WCHAR localdt_path[MAX_PATH+1] = {0};
@@ -310,6 +392,39 @@ HookSHGetKnownFolderPath(REFKNOWNFOLDERID rfid,DWORD dwFlags,HANDLE hToken,PWSTR
     }
     return sSHGetKnownFolderPathStub(rfid,dwFlags,hToken,ppszPath);
 }
+HRESULT WINAPI
+HookRegCreateKeyExW(HKEY hKey,
+    LPCSTR lpSubKey,
+    DWORD Reserved,
+    LPSTR lpClass,
+    DWORD dwOptions,
+    REGSAM samDesired,
+    const LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    PHKEY phkResult,
+    LPDWORD lpdwDisposition)
+{
+    return ERROR_REGISTRY_IO_FAILED;
+        //ERROR_REGISTRY_IO_FAILED;
+        //ERROR_SUCCESS;
+    //return sRegOpenKeyExWStub(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+}
+
+
+
+HRESULT WINAPI
+HookRegSetKeyValueW(HKEY hKey,
+    LPCWSTR lpSubKey,
+    LPCWSTR lpValueName,
+    DWORD   dwType,
+    LPCVOID lpData,
+    DWORD   cbData)
+{
+    return ERROR_REGISTRY_IO_FAILED;
+    //ERROR_REGISTRY_IO_FAILED;
+    //ERROR_SUCCESS;
+//return sRegOpenKeyExWStub(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+}
+
 
 static void 
 init_portable(void)
@@ -317,6 +432,8 @@ init_portable(void)
 #define DLD(s,h) {#s, (void*)(Hook##s), (pointer_to_handler*)(void*)(&h)}
     int i;
     HMODULE h_shell32;
+    HMODULE h_advapi32;
+
     const dyn_link_desc api_tables[] = 
     {
           DLD(SHGetSpecialFolderLocation, sSHGetSpecialFolderLocationStub)
@@ -324,18 +441,30 @@ init_portable(void)
         , DLD(SHGetSpecialFolderPathW, sSHGetSpecialFolderPathWStub)
         , DLD(SHGetKnownFolderIDList, sSHGetKnownFolderIDListStub)
         , DLD(SHGetKnownFolderPath, sSHGetKnownFolderPathStub)
+        , DLD(RegCreateKeyExW,sRegCreateKeyExWStub)
+        , DLD(RegSetKeyValueW,sRegSetKeyValueWStub)
+
     };
     int func_num = sizeof(api_tables)/sizeof(api_tables[0]);
-    if ((h_shell32 = GetModuleHandleW(L"shell32.dll")) == NULL)
-    {
-        return;
-    }
+    //if ((h_shell32 = GetModuleHandleW(L"shell32.dll")) == NULL)
+   // {
+   //     return;
+    //}
+	h_shell32 = LoadLibrary(L"shell32.dll");
+    h_advapi32 = LoadLibrary(L"ADVAPI32.dll");
+    //{
+     //   return;
+    //}
+
     if (!m_target[0])
     {
-        for (i = 0 ; i<func_num; i++)
+        for (i = 0 ; i<func_num-2; i++)
         {
             m_target[i] = (uintptr_t)GetProcAddress(h_shell32, api_tables[i].name);
         }
+        m_target[func_num - 2] = (uintptr_t)GetProcAddress(h_advapi32, api_tables[func_num - 2].name);
+        m_target[func_num - 1] = (uintptr_t)GetProcAddress(h_advapi32, api_tables[func_num - 1].name);
+
         for (i = 0 ; m_target[i]!=0&&i<func_num; i++)
         {
             creator_hook((void*)m_target[i], api_tables[i].hook, (void **)api_tables[i].original);

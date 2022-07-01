@@ -1,6 +1,6 @@
-/*
+﻿/*
  *  MinHook - The Minimalistic API Hooking Library for x64/x86
- *  Copyright (C) 2009-2014 Tsuda Kageyu.
+ *  Copyright (C) 2009-2017 Tsuda Kageyu.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,15 +26,22 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "intrin_c.h"
 #include <windows.h>
 
+#ifdef _MSC_VER
+    #include <intrin.h>
+#endif
+
+#ifndef ARRAYSIZE
+    #define ARRAYSIZE(A) (sizeof(A)/sizeof((A)[0]))
+#endif
+
 #if defined(_M_X64) || defined(__x86_64__)
-    #include "hde/hde64.h"
+    #include "./hde/hde64.h"
     typedef hde64s HDE;
     #define HDE_DISASM(code, hs) hde64_disasm(code, hs)
 #else
-    #include "hde/hde32.h"
+    #include "./hde/hde32.h"
     typedef hde32s HDE;
     #define HDE_DISASM(code, hs) hde32_disasm(code, hs)
 #endif
@@ -144,8 +151,12 @@ BOOL CreateTrampolineFunction(PTRAMPOLINE ct)
             // Modify the RIP relative address.
             PUINT32 pRelAddr;
 
-            // compiler-optimized memcpy.
+            // Avoid using memcpy to reduce the footprint.
+#ifndef _MSC_VER
             memcpy(instBuf, (LPBYTE)pOldInst, copySize);
+#else
+            __movsb(instBuf, (LPBYTE)pOldInst, copySize);
+#endif
             pCopySrc = instBuf;
 
             // Relative address is stored at (instruction length - immediate value length - 4).
@@ -197,7 +208,7 @@ BOOL CreateTrampolineFunction(PTRAMPOLINE ct)
                 pCopySrc = &jmp;
                 copySize = sizeof(jmp);
 
-                // Exit the function If it is not in the branch
+                // Exit the function if it is not in the branch.
                 finished = (pOldInst >= jmpDest);
             }
         }
@@ -230,7 +241,7 @@ BOOL CreateTrampolineFunction(PTRAMPOLINE ct)
             {
                 UINT8 cond = ((hs.opcode != 0x0F ? hs.opcode : hs.opcode2) & 0x0F);
 #if defined(_M_X64) || defined(__x86_64__)
-                // Invert the condition.
+                // Invert the condition in x64 mode to simplify the conditional jump logic.
                 jcc.opcode  = 0x71 ^ cond;
                 jcc.address = dest;
 #else
@@ -253,9 +264,11 @@ BOOL CreateTrampolineFunction(PTRAMPOLINE ct)
         if (pOldInst < jmpDest && copySize != hs.len)
             return FALSE;
 
+        // Trampoline function is too large.
         if ((newPos + copySize) > TRAMPOLINE_MAX_SIZE)
             return FALSE;
 
+        // Trampoline function has too many instructions.
         if (ct->nIP >= ARRAYSIZE(ct->oldIPs))
             return FALSE;
 
@@ -263,7 +276,12 @@ BOOL CreateTrampolineFunction(PTRAMPOLINE ct)
         ct->newIPs[ct->nIP] = newPos;
         ct->nIP++;
 
+        // Avoid using memcpy to reduce the footprint.
+#ifndef _MSC_VER
         memcpy((LPBYTE)ct->pTrampoline + newPos, pCopySrc, copySize);
+#else
+        __movsb((LPBYTE)ct->pTrampoline + newPos, (LPBYTE)pCopySrc, copySize);
+#endif
         newPos += copySize;
         oldPos += hs.len;
     }

@@ -1,6 +1,6 @@
-/*
+﻿/*
  *  MinHook - The Minimalistic API Hooking Library for x64/x86
- *  Copyright (C) 2009-2014 Tsuda Kageyu.
+ *  Copyright (C) 2009-2017 Tsuda Kageyu.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -90,7 +90,7 @@ static LPVOID FindPrevFreeRegion(LPVOID pAddress, LPVOID pMinAddr, DWORD dwAlloc
 {
     ULONG_PTR tryAddr = (ULONG_PTR)pAddress;
 
-    // Round down to the next allocation granularity.
+    // Round down to the allocation granularity.
     tryAddr -= tryAddr % dwAllocationGranularity;
 
     // Start from the previous allocation granularity multiply.
@@ -99,7 +99,7 @@ static LPVOID FindPrevFreeRegion(LPVOID pAddress, LPVOID pMinAddr, DWORD dwAlloc
     while (tryAddr >= (ULONG_PTR)pMinAddr)
     {
         MEMORY_BASIC_INFORMATION mbi;
-        if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == 0)
+        if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
             break;
 
         if (mbi.State == MEM_FREE)
@@ -121,7 +121,7 @@ static LPVOID FindNextFreeRegion(LPVOID pAddress, LPVOID pMaxAddr, DWORD dwAlloc
 {
     ULONG_PTR tryAddr = (ULONG_PTR)pAddress;
 
-    // Round down to the next allocation granularity.
+    // Round down to the allocation granularity.
     tryAddr -= tryAddr % dwAllocationGranularity;
 
     // Start from the next allocation granularity multiply.
@@ -130,7 +130,7 @@ static LPVOID FindNextFreeRegion(LPVOID pAddress, LPVOID pMaxAddr, DWORD dwAlloc
     while (tryAddr <= (ULONG_PTR)pMaxAddr)
     {
         MEMORY_BASIC_INFORMATION mbi;
-        if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(MEMORY_BASIC_INFORMATION)) == 0)
+        if (VirtualQuery((LPVOID)tryAddr, &mbi, sizeof(mbi)) == 0)
             break;
 
         if (mbi.State == MEM_FREE)
@@ -146,6 +146,7 @@ static LPVOID FindNextFreeRegion(LPVOID pAddress, LPVOID pMaxAddr, DWORD dwAlloc
     return NULL;
 }
 #endif
+
 //-------------------------------------------------------------------------
 static PMEMORY_BLOCK GetMemoryBlock(LPVOID pOrigin)
 {
@@ -154,12 +155,10 @@ static PMEMORY_BLOCK GetMemoryBlock(LPVOID pOrigin)
     ULONG_PTR minAddr;
     ULONG_PTR maxAddr;
 
-
     SYSTEM_INFO si;
     GetSystemInfo(&si);
     minAddr = (ULONG_PTR)si.lpMinimumApplicationAddress;
     maxAddr = (ULONG_PTR)si.lpMaximumApplicationAddress;
-
 
     // pOrigin ± 512MB
     if ((ULONG_PTR)pOrigin > MAX_MEMORY_RANGE && minAddr < (ULONG_PTR)pOrigin - MAX_MEMORY_RANGE)
@@ -171,7 +170,6 @@ static PMEMORY_BLOCK GetMemoryBlock(LPVOID pOrigin)
     // Make room for MEMORY_BLOCK_SIZE bytes.
     maxAddr -= MEMORY_BLOCK_SIZE - 1;
 #endif
-
 
     // Look the registered blocks for a reachable one.
     for (pBlock = g_pMemoryBlocks; pBlock != NULL; pBlock = pBlock->pNext)
@@ -308,7 +306,7 @@ VOID FreeBuffer(LPVOID pBuffer)
 BOOL IsExecutableAddress(LPVOID pAddress)
 {
     MEMORY_BASIC_INFORMATION mi;
-    VirtualQuery(pAddress, &mi, sizeof(MEMORY_BASIC_INFORMATION));
+    VirtualQuery(pAddress, &mi, sizeof(mi));
 
     return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
 }
