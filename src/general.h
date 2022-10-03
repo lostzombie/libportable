@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include "intrin_c.h"
-
+//#define _LOGDEBUG
 #define   SYS_MALLOC(x) (HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, (x)))
 #define   SYS_FREE(x)   (HeapFree(GetProcessHeap(), HEAP_ZERO_MEMORY, (x)),(x = NULL))
 

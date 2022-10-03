@@ -13,7 +13,6 @@
 #ifdef _MSC_VER
 #include <stdarg.h>
 #endif
-
 #define MAX_MESSAGE 1024
 #define MAX_ALLSECTIONS 640
 #define SECTION_NAMES 32

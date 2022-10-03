@@ -121,9 +121,9 @@ set_cpu_balance(void *lparam)
     }
     while (SleepEx(INFINITE,true))
     {
-    #ifdef _LOGDEBUG
-        logmsg("CpuUse: %d%%\n", m_cpu);
-    #endif
+    //#ifdef _LOGDEBUG
+    //    logmsg("CpuUse: %d%%\n", m_cpu);
+    //#endif
         set_cpu_priority(value, m_cpu);
     }
     CloseHandle(m_timer);

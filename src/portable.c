@@ -75,6 +75,25 @@ typedef	HRESULT(WINAPI* RegSetKeyValuePtr)(HKEY hKey,
     DWORD   dwType,
     LPCVOID lpData,
     DWORD   cbData);
+typedef	HRESULT(WINAPI* RegSetKeyValueExPtr)(HKEY hKey,
+    LPCWSTR    lpValueName,
+    DWORD      Reserved,
+    DWORD      dwType,
+    const BYTE* lpData,
+    DWORD      cbData);
+typedef	HRESULT(WINAPI* RegDeleteValuePtr)(HKEY hKey,
+    LPCWSTR lpValueName);
+typedef	HRESULT(WINAPI* RegisterEventSourcePtr)(PCWSTR lpUNCServerName,
+    PCWSTR lpSourceName);
+typedef	HRESULT(WINAPI* ReportEventPtr)(HANDLE  hEventLog,
+WORD    wType,
+WORD    wCategory,
+DWORD   dwEventID,
+PSID    lpUserSid,
+WORD    wNumStrings,
+DWORD   dwDataSize,
+LPCWSTR* lpStrings,
+LPVOID  lpRawData);
 
 HMODULE dll_module = NULL;
 static  uintptr_t m_target[EXCLUDE_NUM];
@@ -84,7 +103,10 @@ static  SHGetSpecialFolderPathWPtr    sSHGetSpecialFolderPathWStub;
 static  SHGetKnownFolderIDListPtr     sSHGetKnownFolderIDListStub;
 static  SHGetKnownFolderPathPtr       sSHGetKnownFolderPathStub;
 static  RegCreateKeyExPtr             sRegCreateKeyExWStub;
-static  RegSetKeyValuePtr             sRegSetKeyValueWStub;
+static  RegSetKeyValueExPtr           sRegSetKeyValueExWStub;
+static  RegDeleteValuePtr             sRegDeleteValueWStub;
+static  RegisterEventSourcePtr        sRegisterEventSourceWStub;
+static  ReportEventPtr                sReportEventWStub;
 
 typedef void (*pointer_to_handler)();
 typedef struct _dyn_link_desc
@@ -208,6 +230,9 @@ HRESULT WINAPI
 HookSHGetFolderPathW(HWND hwndOwner,int nFolder,HANDLE hToken,
                      DWORD dwFlags,LPWSTR pszPath)
 {
+#ifdef _LOGDEBUG
+//    logmsg("SHGetFolderPathW[%ls]\n", pszPath);
+#endif
     uintptr_t dwCaller;
     bool      dwFf = false;
     int       folder = nFolder & 0xff;
@@ -286,6 +311,9 @@ HookSHGetFolderPathW(HWND hwndOwner,int nFolder,HANDLE hToken,
 bool WINAPI 
 HookSHGetSpecialFolderPathW(HWND hwndOwner,LPWSTR lpszPath,int csidl,bool fCreate)
 {
+#ifdef _LOGDEBUG
+  //  logmsg("SHGetSpecialFolderPathW[%ls]\n", lpszPath);
+#endif
     bool       internal;
     uintptr_t  dwCaller = (uintptr_t)_ReturnAddress();
     internal = is_specialdll(dwCaller, L"*\\xul.dll") || is_flash_plugins(dwCaller);
@@ -322,6 +350,9 @@ HookSHGetKnownFolderIDList(REFKNOWNFOLDERID rfid,DWORD dwFlags,HANDLE hToken,PID
 HRESULT WINAPI 
 HookSHGetKnownFolderPath(REFKNOWNFOLDERID rfid,DWORD dwFlags,HANDLE hToken,PWSTR *ppszPath)
 {
+#ifdef _LOGDEBUG
+  //  logmsg("SHGetKnownFolderPath[%ls]\n", ppszPath);
+#endif
     *ppszPath = NULL;
     if ( IsEqualGUID(rfid, &FOLDERID_RoamingAppData) )
     {
@@ -403,28 +434,68 @@ HookRegCreateKeyExW(HKEY hKey,
     PHKEY phkResult,
     LPDWORD lpdwDisposition)
 {
-    return ERROR_REGISTRY_IO_FAILED;
-        //ERROR_REGISTRY_IO_FAILED;
-        //ERROR_SUCCESS;
-    //return sRegOpenKeyExWStub(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+#ifdef _LOGDEBUG
+    logmsg("RegCreateKeyExW[%ls]\n", lpSubKey);
+#endif
+    return ERROR_SUCCESS;
+    // return ERROR_REGISTRY_IO_FAILED;
 }
 
 
 
 HRESULT WINAPI
-HookRegSetKeyValueW(HKEY hKey,
-    LPCWSTR lpSubKey,
-    LPCWSTR lpValueName,
-    DWORD   dwType,
-    LPCVOID lpData,
-    DWORD   cbData)
+HookRegSetKeyValueExW(HKEY hKey,
+    LPCWSTR    lpValueName,
+    DWORD      Reserved,
+    DWORD      dwType,
+    const BYTE* lpData,
+   DWORD      cbData)
 {
-    return ERROR_REGISTRY_IO_FAILED;
-    //ERROR_REGISTRY_IO_FAILED;
-    //ERROR_SUCCESS;
-//return sRegOpenKeyExWStub(hKey, lpSubKey, ulOptions, samDesired, phkResult);
+#ifdef _LOGDEBUG
+    logmsg("RegSetKeyValueExW[%ls]\n", lpValueName);
+#endif
+    //return ERROR_REGISTRY_IO_FAILED;
+    return ERROR_SUCCESS;
 }
 
+HRESULT WINAPI
+HookRegDeleteValueW(HKEY hKey,
+    LPCWSTR lpValueName)
+{
+#ifdef _LOGDEBUG
+    logmsg("RegDeleteValueW[%ls]\n", lpValueName);
+#endif
+    //return ERROR_REGISTRY_IO_FAILED;
+    return ERROR_SUCCESS;
+}
+
+HRESULT WINAPI
+HookRegisterEventSourceW(PCWSTR lpUNCServerName,
+    PCWSTR lpSourceName)
+{
+#ifdef _LOGDEBUG
+    logmsg("RegisterEventSourceW[%ls]\n", lpSourceName);
+#endif
+    return 0;
+    //return ERROR_ACCESS_DENIED;
+}
+
+HRESULT WINAPI
+HookReportEventW(HANDLE  hEventLog,
+WORD    wType,
+WORD    wCategory,
+DWORD   dwEventID,
+PSID    lpUserSid,
+WORD    wNumStrings,
+DWORD   dwDataSize,
+LPCWSTR* lpStrings,
+LPVOID  lpRawData)
+{
+#ifdef _LOGDEBUG
+    logmsg("ReportEventW[%ls]\n", lpStrings);
+#endif
+    return TRUE;
+}
 
 static void 
 init_portable(void)
@@ -441,30 +512,31 @@ init_portable(void)
         , DLD(SHGetSpecialFolderPathW, sSHGetSpecialFolderPathWStub)
         , DLD(SHGetKnownFolderIDList, sSHGetKnownFolderIDListStub)
         , DLD(SHGetKnownFolderPath, sSHGetKnownFolderPathStub)
+        , DLD(RegisterEventSourceW,sRegisterEventSourceWStub)
+        , DLD(ReportEventW,sReportEventWStub)
         , DLD(RegCreateKeyExW,sRegCreateKeyExWStub)
-        , DLD(RegSetKeyValueW,sRegSetKeyValueWStub)
-
+        , DLD(RegSetKeyValueExW,sRegSetKeyValueExWStub)
+        , DLD(RegDeleteValueW,sRegDeleteValueWStub)
     };
     int func_num = sizeof(api_tables)/sizeof(api_tables[0]);
-    //if ((h_shell32 = GetModuleHandleW(L"shell32.dll")) == NULL)
-   // {
-   //     return;
-    //}
-	h_shell32 = LoadLibrary(L"shell32.dll");
-    h_advapi32 = LoadLibrary(L"ADVAPI32.dll");
-    //{
-     //   return;
-    //}
-
+    if ((h_shell32 = GetModuleHandleW(L"shell32.dll")) == NULL)
+    {
+        h_shell32 = LoadLibrary(L"shell32.dll");
+    }
+    if ((h_advapi32 = GetModuleHandleW(L"ADVAPI32.dll")) == NULL)
+    {
+        h_advapi32 = LoadLibrary(L"ADVAPI32.dll");
+    }
     if (!m_target[0])
     {
-        for (i = 0 ; i<func_num-2; i++)
+        for (i = 0 ; i<func_num-5; i++)
         {
             m_target[i] = (uintptr_t)GetProcAddress(h_shell32, api_tables[i].name);
         }
-        m_target[func_num - 2] = (uintptr_t)GetProcAddress(h_advapi32, api_tables[func_num - 2].name);
-        m_target[func_num - 1] = (uintptr_t)GetProcAddress(h_advapi32, api_tables[func_num - 1].name);
-
+        for (i = func_num - 5 ; i < func_num; i++)
+        {
+            m_target[i] = (uintptr_t)GetProcAddress(h_advapi32, api_tables[i].name);
+        }
         for (i = 0 ; m_target[i]!=0&&i<func_num; i++)
         {
             creator_hook((void*)m_target[i], api_tables[i].hook, (void **)api_tables[i].original);
