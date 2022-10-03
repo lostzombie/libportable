@@ -1,10 +1,15 @@
 ## Fork Differences with original libportable
 
 add hook's with LocalLow, ProgramData folders
+
 add registry write hook (patch only)  
+
 improve registry read hook (with words Mozilla, Firefox if DisableScan=1)  
+
 add windows events hook's
+
 fix load original library like shell32.dll and ADVAPI32.dll  
+
 update minhook  
 
 ## How to build libportable source code?
